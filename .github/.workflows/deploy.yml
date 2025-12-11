@@ -16,7 +16,7 @@ jobs:
         - name: Checkout
           uses: actions/checkout@v2
           with :
-            path: ./source
+            path: .
 
         - name: Setup SSH Key
           run: |
@@ -31,7 +31,7 @@ jobs:
                 exArgs+="--exclude ${e} "
             done
             echo $exArgs
-            rsync -azv $exArgs -e "ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa" ./source/ patchwork@ewr-container-001.vwire.net:~/object-api/
+            rsync -azv $exArgs -e "ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa" ./ patchwork@ewr-container-001.vwire.net:~/object-api/
 
         - name: restart container
           run: |
