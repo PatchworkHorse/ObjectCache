@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 
 	"github.com/miekg/dns"
 	"github.com/redis/go-redis/v9"
@@ -45,6 +46,10 @@ func handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 		switch q.Qtype {
 		case dns.TypeTXT:
 			handleTxt(r, m)
+		case dns.TypeA:
+			handleA(r, m)
+		case dns.TypeAAAA:
+			handleAAAA(r, m)
 		}
 	}
 
@@ -91,5 +96,57 @@ func handleTxt(query *dns.Msg, response *dns.Msg) error {
 	t.Txt = []string{value}
 
 	response.Answer = append(response.Answer, t)
+	return nil
+}
+
+func handleA(query *dns.Msg, response *dns.Msg) error {
+	if query.Question[0].Qtype != dns.TypeA {
+		return errors.New("handleA expects an A question type")
+	}
+
+	// Question section must be for *.object.patchwork.horse
+	if !dns.IsSubDomain("object.patchwork.horse.", query.Question[0].Name) {
+		response.SetRcode(query, dns.RcodeNameError)
+		return errors.New("invalid domain; must be a subdomain of object.patchwork.horse")
+	}
+
+	// Huge hack, forgive me. Return hard coded A values
+	a := new(dns.A)
+	a.Hdr = dns.RR_Header{
+		Name:   query.Question[0].Name,
+		Rrtype: dns.TypeA,
+		Class:  dns.ClassINET,
+		Ttl:    300,
+	}
+	a.A = net.ParseIP("50.116.57.102")
+
+	response.Answer = append(response.Answer, a)
+
+	return nil
+}
+
+func handleAAAA(query *dns.Msg, response *dns.Msg) error {
+	if query.Question[0].Qtype != dns.TypeAAAA {
+		return errors.New("handleAAAA expects an AAAA question type")
+	}
+
+	// Question section must be for *.object.patchwork.horse
+	if !dns.IsSubDomain("object.patchwork.horse.", query.Question[0].Name) {
+		response.SetRcode(query, dns.RcodeNameError)
+		return errors.New("invalid domain; must be a subdomain of object.patchwork.horse")
+	}
+
+	// Huge hack, Epona forgive me. Return hard coded AAAA values
+	aaaa := new(dns.AAAA)
+	aaaa.Hdr = dns.RR_Header{
+		Name:   query.Question[0].Name,
+		Rrtype: dns.TypeAAAA,
+		Class:  dns.ClassINET,
+		Ttl:    300,
+	}
+	aaaa.AAAA = net.ParseIP("2600:3c03::f03c:95ff:fe5d:294f")
+
+	response.Answer = append(response.Answer, aaaa)
+
 	return nil
 }

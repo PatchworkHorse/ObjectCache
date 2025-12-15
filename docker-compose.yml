@@ -9,7 +9,7 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
-      - "53:8053/udp"
+      - "8053:8053/udp"
     networks:
       - app-network
     environment:
