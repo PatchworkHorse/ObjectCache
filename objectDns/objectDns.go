@@ -80,11 +80,20 @@ func handleTxt(query *dns.Msg, response *dns.Msg) error {
 
 	_, err := pipe.Exec(ctx)
 
+	// Retrieval error
 	if err != nil && err != redis.Nil {
-		fmt.Printf("Cache miss for DNS query part %s...\n", key)
+		fmt.Printf("Error resolving value for key %s...\n", key)
 		response.SetRcode(query, dns.RcodeServerFailure)
 		return err
 	}
+
+	// Cache miss
+	if err != nil && err == redis.Nil {
+		fmt.Printf("Cache miss for DNS query part %s...\n", key)
+		response.SetRcode(query, dns.RcodeNameError)
+		return errors.New("cache miss")
+	}
+	return nil
 
 	value, _ := getCmd.Result()
 	ttl, _ := ttlCmd.Result()
