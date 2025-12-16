@@ -49,6 +49,8 @@ func handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 			fmt.Printf("Handling AAAA request for %s...\n", q.Name)
 			handleAAAA(r, m)
 		}
+
+		w.WriteMsg(m)
 	}
 }
 
