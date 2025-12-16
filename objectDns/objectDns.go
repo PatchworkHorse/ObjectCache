@@ -43,8 +43,10 @@ func handleRequest(w dns.ResponseWriter, r *dns.Msg) {
 		case dns.TypeTXT:
 			handleTxt(r, m)
 		case dns.TypeA:
+			fmt.Printf("Handling A request for %s...\n", q.Name)
 			handleA(r, m)
 		case dns.TypeAAAA:
+			fmt.Printf("Handling AAAA request for %s...\n", q.Name)
 			handleAAAA(r, m)
 		}
 	}
