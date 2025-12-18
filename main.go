@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -14,7 +15,6 @@ import (
 
 // Default redis options
 var redisOptions = &redis.Options{
-	Addr:     "redis:6379",
 	Password: "",
 	DB:       0,
 	Protocol: 2,
@@ -68,7 +68,7 @@ func getCache(gctx *gin.Context, redisOptions *redis.Options) {
 	rdb := redis.NewClient(redisOptions)
 
 	ctx := context.Background()
-	key := gctx.Param("key")
+	key := strings.ToLower(gctx.Param("key"))
 
 	pipe := rdb.Pipeline()
 	getCmd := pipe.Get(ctx, key)
@@ -93,7 +93,7 @@ func setCache(gctx *gin.Context, redisOptions *redis.Options) {
 
 	ctx := context.Background()
 
-	keyParam := gctx.Param("key")
+	keyParam := strings.ToLower(gctx.Param("key"))
 	valueParam := gctx.Param("value")
 	expireParam := gctx.Param("expire")
 
