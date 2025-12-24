@@ -111,7 +111,7 @@ func getCache(gctx *gin.Context, redisOptions *redis.Options) {
 	gctx.JSON(http.StatusOK, gin.H{
 		"value":      value,
 		"ttl":        int64(ttl.Seconds()),
-		"validUntil": time.Now().UTC().Add(ttl).Unix(),
+		"validUntil": time.Now().UTC().Add(ttl),
 	})
 	gctx.Header("X-BucketD-TTL", ttl.String())
 }
@@ -148,7 +148,7 @@ func setCache(gctx *gin.Context, coreConfig *config.CoreConfig, redisOptions *re
 		"message":    "Cache set successfully!",
 		"key":        keyParam,
 		"ttl":        expire,
-		"validUntil": time.Now().UTC().Add(time.Duration(expire) * time.Second).Unix(),
+		"validUntil": time.Now().UTC().Add(time.Duration(expire) * time.Second),
 	})
 
 	gctx.Header("X-BucketD-TTL", strconv.Itoa(expire))

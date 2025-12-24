@@ -49,8 +49,6 @@ func main() {
 		log.L.WithError(e).Warnf("Failed to load config section %s", config.RedisKey)
 	}
 
-	fmt.Printf("DEBUG: coreConfig.Mode = '%s'\n", coreConfig.Mode)
-
 	switch strings.ToLower(coreConfig.Mode) {
 
 	case "http":

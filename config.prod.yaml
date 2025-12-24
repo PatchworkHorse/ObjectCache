@@ -2,6 +2,7 @@ core:
   maxKeyLength: 512 # bytes
   maxValueLength: 512 # bytes
   maxTtl: 3600 # seconds / 1 hour
+  maxElements: 5000 
 
 http:
   port: 8080
