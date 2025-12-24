@@ -59,7 +59,9 @@ type RedisConfig struct {
 
 // NewCoreConfig creates a new instance of CoreConfig with reasonable defaults
 func NewCoreConfig() CoreConfig {
-	return CoreConfig{}
+	return CoreConfig{
+		MaxElements: 10000,
+	}
 }
 
 // NewRedisConfig creates a new instance of RedisConfig with reasonable defaults

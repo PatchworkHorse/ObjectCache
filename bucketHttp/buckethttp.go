@@ -108,8 +108,12 @@ func getCache(gctx *gin.Context, redisOptions *redis.Options) {
 	value, _ := getCmd.Result()
 	ttl, _ := ttlCmd.Result()
 
-	gctx.String(http.StatusAccepted, value)
-	gctx.Header("X-Expires-In", ttl.String())
+	gctx.JSON(http.StatusOK, gin.H{
+		"value":      value,
+		"ttl":        int64(ttl.Seconds()),
+		"validUntil": time.Now().UTC().Add(ttl).Unix(),
+	})
+	gctx.Header("X-BucketD-TTL", ttl.String())
 }
 
 func setCache(gctx *gin.Context, coreConfig *config.CoreConfig, redisOptions *redis.Options) {
@@ -130,6 +134,7 @@ func setCache(gctx *gin.Context, coreConfig *config.CoreConfig, redisOptions *re
 
 	if count := rdb.DBSize(ctx).Val(); count >= int64(coreConfig.MaxElements) {
 		gctx.String(http.StatusTooManyRequests, "Max allowed elements has been reached")
+		return
 	}
 
 	err = rdb.Set(ctx, keyParam, valueParam, time.Duration(expire)*time.Second).Err()
@@ -139,5 +144,12 @@ func setCache(gctx *gin.Context, coreConfig *config.CoreConfig, redisOptions *re
 		return
 	}
 
-	gctx.String(http.StatusOK, "Cache set successfully!")
+	gctx.JSON(http.StatusOK, gin.H{
+		"message":    "Cache set successfully!",
+		"key":        keyParam,
+		"ttl":        expire,
+		"validUntil": time.Now().UTC().Add(time.Duration(expire) * time.Second).Unix(),
+	})
+
+	gctx.Header("X-BucketD-TTL", strconv.Itoa(expire))
 }
