@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/containerd/log"
 	"github.com/miekg/dns"
 	"github.com/redis/go-redis/v9"
 	"patchwork.horse/bucketd/config"
@@ -35,12 +36,11 @@ func StartDnsListener(coreConfig *config.CoreConfig, dnsConfig *config.DnsConfig
 		Net: "udp",
 	}
 
-	err := server.ListenAndServe()
+	log.L.Infof("Listening on port %d for DNS queries", dnsConfig.Port)
+	log.L.Infof("Accepting DNS queries for %s", dnsConfig.FQDN)
 
-	fmt.Printf("Listening on port %d for DNS queries\n", dnsConfig.Port)
-
-	if err != nil {
-		fmt.Printf("Failed to start DNS server %s\n", err.Error())
+	if err := server.ListenAndServe(); err != nil {
+		log.L.WithError(err).Fatal("Failed to start DNS server")
 	}
 
 }
@@ -63,6 +63,8 @@ func (h *DNSHandler) handleRequest(w dns.ResponseWriter, req *dns.Msg, dnsConfig
 		return
 	}
 
+	log.L.Infof("Handling %s query for %s", dns.TypeToString[q.Qtype], q.Name)
+
 	switch q.Qtype {
 	case dns.TypeTXT:
 		err = h.handleTxt(req, m, dnsConfig)
@@ -73,7 +75,7 @@ func (h *DNSHandler) handleRequest(w dns.ResponseWriter, req *dns.Msg, dnsConfig
 	}
 
 	if err != nil {
-		fmt.Printf("System Error: %v\n", err)
+		log.L.WithError(err).Error("System error handling DNS request")
 		m.SetRcode(req, dns.RcodeServerFailure)
 	}
 
