@@ -92,7 +92,7 @@ func getCache(gctx *gin.Context, redisOptions *redis.Options) {
 	rdb := redis.NewClient(redisOptions)
 
 	ctx := context.Background()
-	key := strings.ToLower(gctx.Param("key"))
+	key := strings.TrimPrefix(strings.ToLower(gctx.Param("key")), "/")
 
 	value, err := rdb.Get(ctx, key).Result()
 
@@ -111,7 +111,7 @@ func getCache(gctx *gin.Context, redisOptions *redis.Options) {
 	gctx.JSON(http.StatusOK, gin.H{
 		"value":      value,
 		"ttl":        int64(ttl.Seconds()),
-		"validUntil": time.Now().UTC().Add(ttl).Unix(),
+		"validUntil": time.Now().UTC().Add(ttl),
 	})
 }
 
