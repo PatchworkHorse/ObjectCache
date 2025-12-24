@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/containerd/log"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
@@ -35,21 +36,27 @@ func main() {
 	var dnsConfig config.DnsConfig
 	var redisConfig config.RedisConfig
 
-	_ = k.Unmarshal(config.CoreKey, &coreConfig)
-	_ = k.Unmarshal(config.HTTPKey, &httpConfig)
-	_ = k.Unmarshal(config.DNSKey, &dnsConfig)
-	_ = k.Unmarshal(config.RedisKey, &redisConfig)
+	if e := k.Unmarshal(config.CoreKey, &coreConfig); e != nil {
+		log.L.WithError(e).Warnf("Failed to load config section %s", config.CoreKey)
+	}
+	if e := k.Unmarshal(config.HTTPKey, &httpConfig); e != nil {
+		log.L.WithError(e).Warnf("Failed to load config section %s", config.HTTPKey)
+	}
+	if e := k.Unmarshal(config.DNSKey, &dnsConfig); e != nil {
+		log.L.WithError(e).Warnf("Failed to load config section %s", config.DNSKey)
+	}
+	if e := k.Unmarshal(config.RedisKey, &redisConfig); e != nil {
+		log.L.WithError(e).Warnf("Failed to load config section %s", config.RedisKey)
+	}
 
 	fmt.Printf("DEBUG: coreConfig.Mode = '%s'\n", coreConfig.Mode)
 
 	switch strings.ToLower(coreConfig.Mode) {
 
 	case "http":
-		httpConfig := config.NewHttpConfig()
 		bucketHttp.StartHttpListener(&coreConfig, &httpConfig, &redisConfig)
 
 	case "dns":
-		dnsConfig := config.NewDnsConfig()
 		bucketDns.StartDnsListener(&coreConfig, &dnsConfig, &redisConfig)
 
 	default:
