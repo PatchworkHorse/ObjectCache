@@ -1,36 +1,70 @@
-name: Deploy
+name: Build and Deploy
 
 on:
   push:
     branches:
       - main
-      
+
 env:
-  EXCLUDES: ".git .github conf/certbot/" 
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-    build:
-        runs-on: ubuntu-latest
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
 
-        steps:
-        - name: Checkout
-          uses: actions/checkout@v2
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-        - name: Setup SSH Key
-          run: |
-            mkdir -p ~/.ssh
-            echo "${{ secrets.DEPLOYMENT_SSH_KEY }}" > ~/.ssh/id_rsa
-            chmod 600 ~/.ssh/id_rsa
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-        - name: rsync deploy
-          run: |
-            exArgs=""
-            for e in "${excludes[@]}"; do 
-                exArgs+="--exclude ${e} "
-            done
-            echo $exArgs
-            rsync -azv $exArgs -e "ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa" . patchwork@ewr-container-001.vwire.net:~/object-api/
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=
+            type=raw,value=latest
 
-        - name: restart container
-          run: |
-            ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa patchwork@ewr-container-001.vwire.net 'cd object-api && docker compose up -d --build --force-recreate --no-deps'
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOYMENT_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+      - name: Copy docker-compose to host
+        run: |
+          rsync -azv -e "ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa" \
+            docker-compose.yml config/ \
+            patchwork@ewr-container-001.vwire.net:~/object-api/
+
+      - name: Deploy container
+        run: |
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa patchwork@ewr-container-001.vwire.net \
+            'cd object-api && docker compose pull && docker compose up -d --force-recreate --no-deps'

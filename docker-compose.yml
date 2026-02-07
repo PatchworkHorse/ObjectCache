@@ -39,9 +39,7 @@ services:
   
   api:
     <<: *config-volume
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/patchworkhorse/bucketd:latest
     ports:
       - "8080:8080"
     networks:
